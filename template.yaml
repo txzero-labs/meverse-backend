@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  MeVerse serverless backend.
+
+Globals:
+  Function:
+    Timeout: 60
+
+Parameters:
+  StageName:
+    Type: String
+    Default: dev
+  AssetBucketName:
+    Type: String
+    Default: meverse-dev
+
+Resources:
+  AssetBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Ref AssetBucketName
+
+  AssetTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: Asset
+      PrimaryKey: 
+        Name: WalletAddress
+        Type: String
+
+  GetMetadataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/getMetadata/
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Events:
+        GetMetadata:
+          Type: Api
+          Properties:
+            Path: /metadata/{id}
+            Method: GET
+
+  GenerateAssetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/generateAsset/
+      Handler: app.handler.lambda_handler
+      Runtime: python3.8
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref AssetBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AssetTable
+      Events:
+        GenerateAsset:
+          Type: Api
+          Properties:
+            Path: /generate
+            Method: POST
+
+Outputs:
+  MeVerseApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/"
