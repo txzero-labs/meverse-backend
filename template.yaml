@@ -82,7 +82,7 @@ Resources:
           METADATA_URI: https://ipfs.io/ipfs
           PINATA_KEY: 2027bc27eac9e5f17c6c
           PINATA_SECRET_KEY: f1ac9cf42ba99fc8777849d778e6ab02a41f4bb4b035aa7aa738f83191c0217d
-          CONTRACT_ADDRESS: "0x3546FEBDD6EE3136575FAE0678F9827dd8488487"
+          CONTRACT_ADDRESS: "0xe06EBdD92A9d25fBA127BA16F40C8Af46f9C152E"
           ALCHEMY_API_URL: https://eth-ropsten.alchemyapi.io/v2/ynTekJ0k_wI1iLLwiU8B285JZTqyoxt5
       Policies:
         - S3ReadPolicy:

@@ -17,6 +17,8 @@ const response = (statusCode, jsonData) => {
     statusCode: statusCode,
     headers: {
       "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "content-type",
     },
     isBase64Encoded: false,
     body: jsonData,
@@ -54,8 +56,8 @@ const traitPlaceholder = (traitName, traitValue) => {
       "trait_type": "Background",
       "value": utils.backgroundTrait(traitValue)
     };
-    case "accessories": return {
-      "trait_type": "Accessories",
+    case "accessory": return {
+      "trait_type": "Accessory",
       "value": utils.accessoriesTrait(traitValue)
     };
     default: {
