@@ -133,9 +133,15 @@ const metadataUpload = async (metadataObj, tokenId, pinata) => {
   }
   const jsonMetadata = JSON.stringify(metadataObj);
   var buffer = Buffer.from(jsonMetadata);
-  vol.mkdirSync('/tmp/');
-  vol.writeFileSync("/tmp/jsonMetadata.json", buffer);
-  const readableStream = vol.createReadStream("/tmp/jsonMetadata.json");
+  if (!vol.existsSync('/tmp/')) {
+      vol.mkdirSync('/tmp/');
+  }
+
+  if (!vol.existsSync(`/tmp/${metadataName}`)) {
+      vol.writeFileSync(`/tmp/${metadataName}`, buffer);
+  }
+
+  const readableStream = vol.createReadStream(`/tmp/${metadataName}`);
 
   try {
     const uploadedFile = await pinata.pinFileToIPFS(readableStream, pinataMetadataOptions);
@@ -189,20 +195,25 @@ const saveWalletAddress = async (dynamodb, walletTable, walletAddress, tokenId) 
   }
 };
 
-const getTokenId = (meridianContract, callerAddress, walletAddress) => {
-  meridianContract.methods.walletForToken(walletAddress).call({from: callerAddress})
-    .then((result) => {
-      console.log(`Meridian contract successfully called lastTokenId method for wallet: ${walletAddress}.`);
-      var tokenId = result.toNumber();
+const getTokenId = async (meridianContract, callerAddress, walletAddress) => {
+  try {
+      const result = await meridianContract.methods.tokenForWallet(walletAddress).call({from: callerAddress});
+      console.log(`Meridian contract successfully called tokenForWallet method for wallet: ${walletAddress}.`);
+      var tokenId = parseInt(result);
       return tokenId;
-    }).catch((error) => {
+  } catch(error) {
       console.log(error);
       throw new exceptions.ContractUnavailableError("Method lastTokenId not available.");
-    });
+  }
 }
 
 exports.handler = async (event, context) => {
     // Initialization
+    if (event.body === null && event.body === undefined) {
+      return response(400, {});
+    }
+
+    let body = JSON.parse(event.body);
     const dynamodb = new DynamoDBClient({ region: process.env.REGION });
     const pinata = pinataSDK(process.env.PINATA_KEY, process.env.PINATA_SECRET_KEY);
     const s3 = new S3Client({ region: process.env.REGION });
@@ -212,18 +223,32 @@ exports.handler = async (event, context) => {
 
     const meridianContract = new web3.eth.Contract(contract.abi, process.env.CONTRACT_ADDRESS);
 
-    const walletAddress = event.body.walletAddress;
-    const imageName = event.body.imageName;
+    const walletAddress = body.walletAddress;
+    const imageName = body.imageName;
+
+    if(!walletAddress || !imageName || !body.traits) {
+      console.error("Invalid input parameters.");
+
+      return response(
+        400, 
+        JSON.stringify({ 
+          walletAddress: walletAddress, 
+          imageName: imageName, 
+          traits: body.traits
+        })
+      );
+    }
 
     console.log("Preparing traits...")
-    const traits = prepareTraits(event.body.traits);
+    const traits = prepareTraits(body.traits);
     resObj = {
+      walletAddress: walletAddress,
       imageName: imageName,
-      traits: event.body.traits,
+      traits: body.traits,
     };
 
     console.log(`Fetching last tokenId for wallet: ${walletAddress}.`);
-    const tokenId = getTokenId(meridianContract, process.env.CONTRACT_ADDRESS, walletAddress);
+    const tokenId = await getTokenId(meridianContract, process.env.CONTRACT_ADDRESS, walletAddress);
     console.log(`Last transaction tokenId: ${tokenId}`);
     resObj.tokenId = tokenId;
 
