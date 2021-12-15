@@ -105,6 +105,11 @@ Resources:
       CodeUri: functions/generateAsset/
       Handler: app.handler.lambda_handler
       Runtime: python3.8
+      Environment:
+        Variables:
+          MAX_ASSETS_PER_WALLET: 5
+          ASSET_DYNAMODB_TABLE: Asset
+          S3_BUCKET: !Ref AssetBucketName
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref AssetBucket

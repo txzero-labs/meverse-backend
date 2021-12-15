@@ -21,7 +21,7 @@ GROUP_TO_ID: Dict[str, int] = {
     "thinker": 4,
 }
 
-MAX_ASSETS_PER_WALLET: int = int(os.environ.get("MAX_ASSETS_PER_WALLET", 3))
+MAX_ASSETS_PER_WALLET: int = int(os.environ.get("MAX_ASSETS_PER_WALLET", 5))
 ASSET_DYNAMODB_TABLE: str = os.environ.get("ASSET_DYNAMODB_TABLE", "Asset")
 S3_BUCKET: str = os.environ.get("S3_BUCKET", "meverse-dev")
 
@@ -34,14 +34,18 @@ CORS_HEADERS = {
 def lambda_handler(event: Dict[str, Any], _context: Dict[str, Any]) -> Dict[str, Any]:
     request_body = json.loads(event["body"])
 
-    if "wallet" not in request_body:
+    if "wallet" not in request_body or not isinstance(request_body["wallet"], str):
         return {
             "statusCode": 400,
-            "body": json.dumps({"message": "Wallet address must be specified."}),
+            "body": json.dumps(
+                {"message": "Valid MetaMask wallet address must be specified."}
+            ),
             "headers": CORS_HEADERS,
         }
 
     wallet_address = request_body["wallet"]
+
+    logger.info(f"Processing {request_body}")
 
     try:
         validate_selected_items(request_body)
@@ -162,10 +166,15 @@ def field_exists(body: Dict[str, Any], field: str) -> bool:
 def validate_max_assets_per_wallet(wallet_address: str) -> None:
     count = count_generated_assets(wallet_address)
 
-    logger.info(f"Wallet {wallet_address} minted {count} NFTs")
-
     if count == MAX_ASSETS_PER_WALLET:
+        logger.info(
+            f"Wallet {wallet_address} minted {count}/{MAX_ASSETS_PER_WALLET} NFTs"
+        )
         raise ValidationError("The maximum number of NFTs per wallet is minted.")
+
+    logger.info(
+        f"Generating {count + 1}/{MAX_ASSETS_PER_WALLET} NFT for {wallet_address}"
+    )
 
 
 def validate_trait_uniqueness(request_body: Dict[str, Any]) -> None:
