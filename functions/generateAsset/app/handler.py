@@ -282,7 +282,7 @@ def merge_image_layers(request_body: Dict[str, Any], traits_bitstring: str) -> N
     if (left_hand := items["hand"]) < 28:
         layer_keys.append(f"lhands/{left_hand}.png")
 
-    if (right_hand := request_body["rightHandItemId"]) is not None:
+    if (right_hand := request_body.get("rightHandItemId")) is not None:
         layer_keys.append(
             f"rhands/{group}/{'universal' if is_universal_pose else pose_id}"
             f"/{right_hand}.png"
