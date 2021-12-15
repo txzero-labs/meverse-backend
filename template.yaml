@@ -1,11 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  MeVerse serverless backend.
+Description: MeVerse serverless backend.
 
 Globals:
   Function:
-    Timeout: 60
+    Timeout: 90
 
 Parameters:
   StageName:
@@ -117,6 +116,20 @@ Resources:
           Properties:
             Path: /generate
             Method: POST
+
+  CorsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/cors/
+      Handler: handler.lambda_handler
+      Runtime: python3.8
+      Events:
+        CorsOptions:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: OPTIONS
+    
 
 Outputs:
   MeVerseApi:

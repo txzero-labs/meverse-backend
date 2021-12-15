@@ -25,9 +25,22 @@ MAX_ASSETS_PER_WALLET: int = int(os.environ.get("MAX_ASSETS_PER_WALLET", 3))
 ASSET_DYNAMODB_TABLE: str = os.environ.get("ASSET_DYNAMODB_TABLE", "Asset")
 S3_BUCKET: str = os.environ.get("S3_BUCKET", "meverse-dev")
 
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "content-type",
+}
+
 
 def lambda_handler(event: Dict[str, Any], _context: Dict[str, Any]) -> Dict[str, Any]:
-    request_body = event["body"]
+    request_body = json.loads(event["body"])
+
+    if "wallet" not in request_body:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"message": "Wallet address must be specified."}),
+            "headers": CORS_HEADERS,
+        }
+
     wallet_address = request_body["wallet"]
 
     try:
@@ -38,12 +51,21 @@ def lambda_handler(event: Dict[str, Any], _context: Dict[str, Any]) -> Dict[str,
         return {
             "statusCode": 400,
             "body": json.dumps({"message": str(error)}),
+            "headers": CORS_HEADERS,
         }
     except Boto3Error:
         logger.error("DynamoDB request failed", exc_info=True)
         return {
             "statusCode": 500,
             "body": json.dumps({"message": "Service temporarily unavailable."}),
+            "headers": CORS_HEADERS,
+        }
+    except Exception as error:  # pylint: disable=broad-except
+        logger.error(str(error), exc_info=True)
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"message": "Service temporarily unavailable."}),
+            "headers": CORS_HEADERS,
         }
 
     traits_bitstring = build_traits_bitstring(request_body)
@@ -54,6 +76,7 @@ def lambda_handler(event: Dict[str, Any], _context: Dict[str, Any]) -> Dict[str,
     return {
         "statusCode": 200,
         "body": json.dumps({"traits": traits_bitstring}),
+        "headers": CORS_HEADERS,
     }
 
 
@@ -189,7 +212,8 @@ def build_traits_bitstring(request_body: Dict[str, Any]) -> str:
     boots = int_to_bin(request_body["items"]["boots"], bits=4)
     accessory = int_to_bin(request_body["items"]["accessory"], bits=4)
     left_hand = int_to_bin(request_body["items"]["hand"], bits=5)
-    right_hand = int_to_bin(request_body["rightHandItemId"], bits=3)
+    right_hand_item_id = request_body.get("rightHandItemId") or 0
+    right_hand = int_to_bin(right_hand_item_id, bits=3)
     return (
         group
         + founder
