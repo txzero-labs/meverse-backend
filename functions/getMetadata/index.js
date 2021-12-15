@@ -28,17 +28,17 @@ exports.handler = async (event, context) => {
     let getItemParams = {
       TableName: tableName,
       Key: params,
-      ProjectionExpression: "metadata"
+      ProjectionExpression: "Metadata"
     }
     const getCommand = new GetItemCommand(getItemParams);
     try {
       const data = await dynamodb.send(getCommand);
-      if (data.Item == undefined || data.Item == null) {
+      if (data.Item === undefined || data.Item === null) {
         return response(404, JSON.stringify({error: `Could not find item with id: ${event.pathParameters.id}`}));
       } else {
         const metadataItem = unmarshall(data.Item);
 
-        const metadataHash = metadataItem.metadata;
+        const metadataHash = metadataItem.Metadata;
         const metadataURI = `${process.env.METADATA_URI}/${metadataHash}`;
 
         console.info('Sending request to: ' + metadataURI);
