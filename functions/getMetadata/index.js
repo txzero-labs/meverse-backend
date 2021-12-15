@@ -2,8 +2,6 @@ const { DynamoDBClient, GetItemCommand } = require("@aws-sdk/client-dynamodb");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const tiny = require('tiny-json-http');
 
-const baseMetadataURI = 'https://ipfs.io/ipfs';
-
 const response = (statusCode, jsonData) => {
   return {
     statusCode: statusCode,
@@ -17,7 +15,7 @@ const response = (statusCode, jsonData) => {
 
 exports.handler = async (event, context) => {
   const dynamodb = new DynamoDBClient({ region: process.env.REGION });
-  const tableName = process.env.STORAGE_NAME;
+  const tableName = process.env.DYNAMO_METADATA_TABLE;
   const partitionKeyName = "TokenId";
 
   var params = {};

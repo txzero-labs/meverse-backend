@@ -37,6 +37,14 @@ Resources:
         Name: TokenId
         Type: Number
 
+  WalletTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: Wallet
+      PrimaryKey:
+        Name: WalletAddress
+        Type: String
+
   GetMetadataFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -46,7 +54,7 @@ Resources:
       Environment:
         Variables:
           REGION: eu-central-1
-          STORAGE_NAME: MetadataLink
+          DYNAMO_METADATA_TABLE: MetadataLink
           METADATA_URI: https://ipfs.io/ipfs
       Policies:
         - S3CrudPolicy:
@@ -59,6 +67,38 @@ Resources:
           Properties:
             Path: /metadata/{id}
             Method: GET
+
+  UploadAssetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/uploadAsset/
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Environment:
+        Variables:
+          REGION: eu-central-1
+          DYNAMO_METADATA_TABLE: !Ref MetadataLinkTable
+          DYNAMO_WALLET_TABLE: !Ref WalletTable
+          S3_BUCKET: !Ref AssetBucket
+          METADATA_URI: https://ipfs.io/ipfs
+          PINATA_KEY: 2027bc27eac9e5f17c6c
+          PINATA_SECRET_KEY: f1ac9cf42ba99fc8777849d778e6ab02a41f4bb4b035aa7aa738f83191c0217d
+          CONTRACT_ADDRESS: 0x3546FEBDD6EE3136575FAE0678F9827dd8488487
+          ALCHEMY_API_URL: https://eth-ropsten.alchemyapi.io/v2/ynTekJ0k_wI1iLLwiU8B285JZTqyoxt5
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref AssetBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MetadataLinkTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WalletTable
+
+      Events:
+        UploadAsset:
+          Type: Api
+          Properties:
+            Path: /upload
+            Method: POST
 
   GenerateAssetFunction:
     Type: AWS::Serverless::Function
