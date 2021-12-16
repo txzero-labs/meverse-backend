@@ -270,10 +270,17 @@ exports.handler = async (event, context) => {
 
     const founder = await getFounder(meridianContract, process.env.CONTRACT_ADDRESS, tokenId);
     resObj.founder = founder;
+    let classValue = "";
+
+    if (founder) {
+      classValue = "Founder";
+    } else {
+      classValue = "Regular";
+    }
 
     traits.push({
-      "trait_type": "Founder",
-      "value": founder
+      "trait_type": "Class",
+      "value": classValue
     });
 
     console.log(`Uploading image: ${imageName} to IPFS.`);
