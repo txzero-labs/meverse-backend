@@ -194,7 +194,9 @@ def validate_trait_uniqueness(request_body: Dict[str, Any]) -> None:
     )
 
     if response["Count"] > 0:
-        raise ValidationError("Selected items are not unique.")
+        raise ValidationError(
+            "Someone else was quicker! Selected Meridian is already minted."
+        )
 
 
 def count_generated_assets(wallet_address: str) -> int:
