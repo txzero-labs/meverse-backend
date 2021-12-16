@@ -109,12 +109,15 @@ Resources:
         Variables:
           MAX_ASSETS_PER_WALLET: 5
           ASSET_DYNAMODB_TABLE: Asset
+          WALLET_DYNAMODB_TABLE: Wallet
           S3_BUCKET: !Ref AssetBucketName
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref AssetBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref AssetTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WalletTable
       Events:
         GenerateAsset:
           Type: Api

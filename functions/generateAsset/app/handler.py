@@ -23,6 +23,7 @@ GROUP_TO_ID: Dict[str, int] = {
 
 MAX_ASSETS_PER_WALLET: int = int(os.environ.get("MAX_ASSETS_PER_WALLET", 5))
 ASSET_DYNAMODB_TABLE: str = os.environ.get("ASSET_DYNAMODB_TABLE", "Asset")
+WALLET_DYNAMODB_TABLE: str = os.environ.get("WALLET_DYNAMODB_TABLE", "Wallet")
 S3_BUCKET: str = os.environ.get("S3_BUCKET", "meverse-dev")
 
 CORS_HEADERS = {
@@ -198,14 +199,14 @@ def validate_trait_uniqueness(request_body: Dict[str, Any]) -> None:
 
 def count_generated_assets(wallet_address: str) -> int:
     response = dynamodb.get_item(
-        TableName=ASSET_DYNAMODB_TABLE,
+        TableName=WALLET_DYNAMODB_TABLE,
         Key={"WalletAddress": {"S": wallet_address}},
         ConsistentRead=True,
-        AttributesToGet=["Traits"],
+        AttributesToGet=["TokenIds"],
     )
     if "Item" in response:
-        traits = response["Item"]["Traits"]["SS"]
-        return len(traits)
+        tokens = response["Item"]["TokenIds"]["SS"]
+        return len(tokens)
     return 0
 
 
