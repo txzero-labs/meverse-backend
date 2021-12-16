@@ -155,12 +155,13 @@ const metadataUpload = async (metadataObj, tokenId, pinata) => {
   };
 };
 
-const saveMetadata = async (dynamodb, metadataTable, tokenId, metadataHash) => {
+const saveMetadata = async (dynamodb, metadataTable, tokenId, metadataHash, imageHash) => {
   let params = {
     TableName: metadataTable,
     Item: {
       TokenId: {"N": tokenId},
-      Metadata: {"S": metadataHash}
+      Metadata: {"S": metadataHash},
+      Image: {"S": imageHash},
     }
   }
   const putItem = new PutItemCommand(params);
@@ -205,7 +206,20 @@ const getTokenId = async (meridianContract, callerAddress, walletAddress) => {
       return tokenId;
   } catch(error) {
       console.log(error);
-      throw new exceptions.ContractUnavailableError("Method lastTokenId not available.");
+      throw new exceptions.ContractUnavailableError("Method tokenForWallet not available.");
+  }
+}
+
+const getFounder = async (meridianContract, callerAddress, tokenId) => {
+  try {
+      const result = await meridianContract.methods.founder(tokenId).call({from: callerAddress});
+      console.log(`Meridian contract successfully called founder method for tokenId: ${tokenId}.`);
+      var founder = !!parseInt(result);
+      return founder;
+
+  } catch (error) {
+    console.log(error);
+    throw new exceptions.ContractUnavailableError("Method founder not available.");
   }
 }
 
@@ -254,6 +268,14 @@ exports.handler = async (event, context) => {
     console.log(`Last transaction tokenId: ${tokenId}`);
     resObj.tokenId = tokenId;
 
+    const founder = await getFounder(meridianContract, process.env.CONTRACT_ADDRESS, tokenId);
+    resObj.founder = founder;
+
+    traits.push({
+      "trait_type": "Founder",
+      "value": founder
+    });
+
     console.log(`Uploading image: ${imageName} to IPFS.`);
     const imageHash = await imageUpload(s3, imageName, tokenId, pinata);
     resObj.imageHash = imageHash;
@@ -267,7 +289,7 @@ exports.handler = async (event, context) => {
 
     console.log(`Saving metadata hash: ${metadataHash} to DynamoDB.`);
     try {
-      await saveMetadata(dynamodb, metadataTable, tokenId.toString(), metadataHash);
+      await saveMetadata(dynamodb, metadataTable, tokenId.toString(), metadataHash, imageHash);
     } catch (err) {
       console.log(err);
       return response(500, resObj)
