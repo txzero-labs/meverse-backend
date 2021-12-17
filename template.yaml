@@ -27,12 +27,12 @@ Resources:
   AssetBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Sub "${AssetBucketName}-${Env}"
+      BucketName: !Ref AssetBucketName
 
   AssetTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: !Sub "${AssetTableName}-${Env}"
+      TableName: !Ref AssetTableName
       PrimaryKey: 
         Name: WalletAddress
         Type: String
@@ -40,7 +40,7 @@ Resources:
   MetadataLinkTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: !Sub "${MetadataLinkTableName}-${Env}"
+      TableName: !Ref MetadataLinkTableName
       PrimaryKey:
         Name: TokenId
         Type: Number
@@ -48,7 +48,7 @@ Resources:
   WalletTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: !Sub "${WalletTableName}-${Env}"
+      TableName: !Ref WalletTableName
       PrimaryKey:
         Name: WalletAddress
         Type: String
@@ -62,7 +62,7 @@ Resources:
       Environment:
         Variables:
           REGION: eu-central-1
-          DYNAMO_METADATA_TABLE: !Sub "${MetadataLinkTableName}-${Env}"
+          DYNAMO_METADATA_TABLE: !Ref MetadataLinkTableName
           METADATA_URI: https://ipfs.io/ipfs
       Policies:
         - S3CrudPolicy:
@@ -85,9 +85,9 @@ Resources:
       Environment:
         Variables:
           REGION: eu-central-1
-          DYNAMO_METADATA_TABLE: !Sub "${MetadataLinkTableName}-${Env}"
-          DYNAMO_WALLET_TABLE: !Sub "${WalletTableName}-${Env}"
-          S3_BUCKET: !Sub "${AssetBucketName}-${Env}"
+          DYNAMO_METADATA_TABLE: !Ref MetadataLinkTableName
+          DYNAMO_WALLET_TABLE: !Ref WalletTableName
+          S3_BUCKET: !Ref AssetBucketName
           METADATA_URI: https://ipfs.io/ipfs
           PINATA_KEY: 2027bc27eac9e5f17c6c
           PINATA_SECRET_KEY: f1ac9cf42ba99fc8777849d778e6ab02a41f4bb4b035aa7aa738f83191c0217d
@@ -117,9 +117,9 @@ Resources:
       Environment:
         Variables:
           MAX_ASSETS_PER_WALLET: 5
-          ASSET_DYNAMODB_TABLE: !Sub "${AssetTableName}-${Env}"
-          WALLET_DYNAMODB_TABLE: !Sub "${WalletTableName}-${Env}"
-          S3_BUCKET: !Sub "${AssetBucketName}-${Env}"
+          ASSET_DYNAMODB_TABLE: !Ref AssetTableName
+          WALLET_DYNAMODB_TABLE: !Ref WalletTableName
+          S3_BUCKET: !Ref AssetBucketName 
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref AssetBucket
