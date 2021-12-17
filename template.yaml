@@ -7,23 +7,32 @@ Globals:
     Timeout: 90
 
 Parameters:
-  StageName:
+  Env:
     Type: String
     Default: dev
   AssetBucketName:
     Type: String
-    Default: meverse-dev
+    Default: meverse
+  AssetTableName:
+    Type: String 
+    Default: Asset
+  MetadataLinkTableName:
+    Type: String 
+    Default: MetadataLink
+  WalletTableName:
+    Type: String 
+    Default: Wallet
 
 Resources:
   AssetBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Ref AssetBucketName
+      BucketName: !Sub "${AssetBucketName}-${Env}"
 
   AssetTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: Asset
+      TableName: !Sub "${AssetTableName}-${Env}"
       PrimaryKey: 
         Name: WalletAddress
         Type: String
@@ -31,7 +40,7 @@ Resources:
   MetadataLinkTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: MetadataLink
+      TableName: !Sub "${MetadataLinkTableName}-${Env}"
       PrimaryKey:
         Name: TokenId
         Type: Number
@@ -39,7 +48,7 @@ Resources:
   WalletTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: Wallet
+      TableName: !Sub "${WalletTableName}-${Env}"
       PrimaryKey:
         Name: WalletAddress
         Type: String
@@ -53,7 +62,7 @@ Resources:
       Environment:
         Variables:
           REGION: eu-central-1
-          DYNAMO_METADATA_TABLE: MetadataLink
+          DYNAMO_METADATA_TABLE: !Sub "${MetadataLinkTableName}-${Env}"
           METADATA_URI: https://ipfs.io/ipfs
       Policies:
         - S3CrudPolicy:
@@ -76,9 +85,9 @@ Resources:
       Environment:
         Variables:
           REGION: eu-central-1
-          DYNAMO_METADATA_TABLE: MetadataLink
-          DYNAMO_WALLET_TABLE: Wallet
-          S3_BUCKET: meverse-dev
+          DYNAMO_METADATA_TABLE: !Sub "${MetadataLinkTableName}-${Env}"
+          DYNAMO_WALLET_TABLE: !Sub "${WalletTableName}-${Env}"
+          S3_BUCKET: !Sub "${AssetBucketName}-${Env}"
           METADATA_URI: https://ipfs.io/ipfs
           PINATA_KEY: 2027bc27eac9e5f17c6c
           PINATA_SECRET_KEY: f1ac9cf42ba99fc8777849d778e6ab02a41f4bb4b035aa7aa738f83191c0217d
@@ -108,9 +117,9 @@ Resources:
       Environment:
         Variables:
           MAX_ASSETS_PER_WALLET: 5
-          ASSET_DYNAMODB_TABLE: Asset
-          WALLET_DYNAMODB_TABLE: Wallet
-          S3_BUCKET: !Ref AssetBucketName
+          ASSET_DYNAMODB_TABLE: !Sub "${AssetTableName}-${Env}"
+          WALLET_DYNAMODB_TABLE: !Sub "${WalletTableName}-${Env}"
+          S3_BUCKET: !Sub "${AssetBucketName}-${Env}"
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref AssetBucket
