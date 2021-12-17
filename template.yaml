@@ -22,6 +22,9 @@ Parameters:
   WalletTableName:
     Type: String 
     Default: Wallet
+  WhitelistTableName:
+    Type: String 
+    Default: Whitelist
 
 Resources:
   AssetBucket:
@@ -49,6 +52,14 @@ Resources:
     Type: AWS::Serverless::SimpleTable
     Properties:
       TableName: !Ref WalletTableName
+      PrimaryKey:
+        Name: WalletAddress
+        Type: String
+
+  WhitelistTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: !Ref WhitelistTableName
       PrimaryKey:
         Name: WalletAddress
         Type: String
@@ -119,6 +130,7 @@ Resources:
           MAX_ASSETS_PER_WALLET: 5
           ASSET_DYNAMODB_TABLE: !Ref AssetTableName
           WALLET_DYNAMODB_TABLE: !Ref WalletTableName
+          WHITELIST_DYNAMODB_TABLE: !Ref WhitelistTableName
           S3_BUCKET: !Ref AssetBucketName 
       Policies:
         - S3CrudPolicy:
@@ -127,6 +139,8 @@ Resources:
             TableName: !Ref AssetTable
         - DynamoDBCrudPolicy:
             TableName: !Ref WalletTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WhitelistTable
       Events:
         GenerateAsset:
           Type: Api

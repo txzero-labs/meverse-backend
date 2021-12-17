@@ -24,8 +24,9 @@ GROUP_TO_ID: Dict[str, int] = {
 MAX_ASSETS_PER_WALLET: int = int(os.environ.get("MAX_ASSETS_PER_WALLET", 5))
 ASSET_DYNAMODB_TABLE: str = os.environ.get("ASSET_DYNAMODB_TABLE", "Asset")
 WALLET_DYNAMODB_TABLE: str = os.environ.get("WALLET_DYNAMODB_TABLE", "Wallet")
+WHITELIST_DYNAMODB_TABLE: str = os.environ.get("WHITELIST_DYNAMODB_TABLE", "Whitelist")
 S3_BUCKET: str = os.environ.get("S3_BUCKET", "meverse-dev")
-IMAGE_SIZE: int = 468
+IMAGE_SIZE: int = 500
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
@@ -50,6 +51,7 @@ def lambda_handler(event: Dict[str, Any], _context: Dict[str, Any]) -> Dict[str,
     logger.info(f"Processing {request_body}")
 
     try:
+        validate_whitelist(wallet_address)
         validate_selected_items(request_body)
         validate_max_assets_per_wallet(wallet_address)
         validate_trait_uniqueness(request_body)
@@ -173,6 +175,17 @@ def field_exists(body: Dict[str, Any], field: str) -> bool:
     return field in body and body[field] is not None
 
 
+def validate_whitelist(wallet_address: str) -> None:
+    response = dynamodb.get_item(
+        TableName=WHITELIST_DYNAMODB_TABLE,
+        Key={"WalletAddress": {"S": wallet_address}},
+        ConsistentRead=True,
+        AttributesToGet=["WalletAddress"],
+    )
+    if "Item" not in response:
+        raise ValidationError("Presale is only available for whitelisted users.")
+
+
 def validate_max_assets_per_wallet(wallet_address: str) -> None:
     count = count_generated_assets(wallet_address)
 
@@ -286,10 +299,10 @@ def merge_image_layers(request_body: Dict[str, Any], traits_bitstring: str) -> N
         chest_path = f"chests/{items['chest']}/{group}/{pose_id}.png"
     layer_keys.append(chest_path)
 
+    layer_keys.append(f"heads/{items['head']}.png")
+
     if (accessory := items["accessory"]) < 9:
         layer_keys.append(f"accessories/{accessory}.png")
-
-    layer_keys.append(f"heads/{items['head']}.png")
 
     if (left_hand := items["hand"]) < 28:
         layer_keys.append(f"lhands/{left_hand}.png")
