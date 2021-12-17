@@ -25,6 +25,7 @@ MAX_ASSETS_PER_WALLET: int = int(os.environ.get("MAX_ASSETS_PER_WALLET", 5))
 ASSET_DYNAMODB_TABLE: str = os.environ.get("ASSET_DYNAMODB_TABLE", "Asset")
 WALLET_DYNAMODB_TABLE: str = os.environ.get("WALLET_DYNAMODB_TABLE", "Wallet")
 S3_BUCKET: str = os.environ.get("S3_BUCKET", "meverse-dev")
+IMAGE_SIZE: int = 468
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
@@ -73,10 +74,18 @@ def lambda_handler(event: Dict[str, Any], _context: Dict[str, Any]) -> Dict[str,
             "headers": CORS_HEADERS,
         }
 
-    traits_bitstring = build_traits_bitstring(request_body)
+    try:
+        traits_bitstring = build_traits_bitstring(request_body)
 
-    merge_image_layers(request_body, traits_bitstring)
-    save_wallet_traits(wallet_address, traits_bitstring)
+        merge_image_layers(request_body, traits_bitstring)
+        save_wallet_traits(wallet_address, traits_bitstring)
+    except Exception as error:  # pylint: disable=broad-except
+        logger.error(str(error), exc_info=True)
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"message": "Service temporarily unavailable."}),
+            "headers": CORS_HEADERS,
+        }
 
     return {
         "statusCode": 200,
@@ -293,7 +302,7 @@ def merge_image_layers(request_body: Dict[str, Any], traits_bitstring: str) -> N
 
     layers = [get_png_from_s3(f"layers/{key}") for key in layer_keys]
 
-    image = Image.new("RGBA", (350, 350), (255, 0, 0, 0))
+    image = Image.new("RGBA", (IMAGE_SIZE, IMAGE_SIZE), (255, 0, 0, 0))
     for layer in layers:
         if layer.mode == "RGB":
             alpha_channel = Image.new("L", layer.size, 255)
@@ -307,11 +316,15 @@ def merge_image_layers(request_body: Dict[str, Any], traits_bitstring: str) -> N
 def get_png_from_s3(key: str) -> Image:
     logger.info(f"GetObject {key}")
 
-    image_object = s3.Object(S3_BUCKET, key)
-    response = image_object.get()
-    file_stream = response["Body"]
-    image = Image.open(file_stream)
-    return image
+    try:
+        image_object = s3.Object(S3_BUCKET, key)
+        response = image_object.get()
+        file_stream = response["Body"]
+        image = Image.open(file_stream)
+        return image
+    except Exception as e:
+        logger.error(f"Failed to get layer from s3://{S3_BUCKET}/{key}")
+        raise e
 
 
 def put_png_to_s3(image: Image, key: str) -> None:
